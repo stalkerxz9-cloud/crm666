@@ -1,0 +1,31 @@
+name: Atlas CRM deadline notifications
+
+on:
+  schedule:
+    - cron: '2-57/5 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/atlas-notifications.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-deadline-tick
+  cancel-in-progress: false
+
+jobs:
+  check-deadlines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Run the CRM deadline dispatcher
+        shell: bash
+        run: |
+          response="$(curl --fail --silent --show-error \
+            --retry 1 --retry-delay 65 --max-time 50 \
+            --user-agent 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36' \
+            'https://atlas-team-crm-1022.bronzedrake128.chatgpt.site/api/notifications/tick')"
+          jq --exit-status '.ok == true and keys == ["ok"]' <<< "$response" > /dev/null
+          echo 'CRM deadline check accepted.'
